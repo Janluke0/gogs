@@ -598,6 +598,31 @@ func GetPullRequestByID(id int64) (*PullRequest, error) {
 	return getPullRequestByID(x, id)
 }
 
+
+// GetPullByIndex returns raw pull request without loading attributes by index in a repository.
+func GetRawPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
+	pr := &PullRequest{
+		BaseRepoID: repoID,
+		Index:  index,
+	}
+	has, err := x.Get(pr)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrIssueNotExist{args: map[string]interface{}{"repoID": repoID, "index": index}}
+	}
+	return pr, nil
+}
+
+// GetPullByIndex returns pull by index in a repository.
+func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
+	pr, err := GetRawPullRequestByIndex(repoID, index)
+	if err != nil {
+		return nil, err
+	}
+	return pr, pr.LoadAttributes()
+}
+
 func getPullRequestByIssueID(e Engine, issueID int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		IssueID: issueID,
