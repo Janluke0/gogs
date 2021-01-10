@@ -101,6 +101,15 @@ func (pr *PullRequest) loadAttributes(e Engine) (err error) {
 		}
 	}
 
+	if pr.Issue == nil {
+		pr.Issue, err = getRawIssueByID(e, pr.IssueID)
+		if err != nil {
+			return fmt.Errorf("get issue by ID: %v", err)
+		}
+		pr.Issue.PullRequest = pr
+		pr.Issue.loadAttributes(e)
+	}
+
 	if pr.HasMerged && pr.Merger == nil {
 		pr.Merger, err = getUserByID(e, pr.MergerID)
 		if IsErrUserNotExist(err) {
@@ -893,4 +902,114 @@ func TestPullRequests() {
 
 func InitTestPullRequests() {
 	go TestPullRequests()
+}
+
+type PullsOptions struct {
+	UserID      int64
+	AssigneeID  int64
+	HeadRepoID  int64
+	BaseRepoID  int64
+	PosterID    int64
+	MilestoneID int64
+	Page        int
+	HasMerged   bool
+	IsMention   bool
+	Labels      string
+	SortType    string
+}
+
+// buildIssuesQuery returns nil if it foresees there won't be any value returned.
+func buildPullsQuery(opts *PullsOptions) *xorm.Session {
+	sess := x.NewSession()
+
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+
+	if opts.BaseRepoID > 0 {
+		sess.Where("pull_request.base_repo_id=?", opts.BaseRepoID).And("pull_request.has_merged=?", opts.HasMerged)
+	} else {
+		sess.Where("pull_request.has_merged=?", opts.HasMerged)
+	}
+
+
+	sess.Join("INNER", "issue", "issue.id = pull_request.issue_id")
+
+	if opts.AssigneeID > 0 {
+		sess.And("issue.assignee_id=?", opts.AssigneeID)
+	} else if opts.PosterID > 0 {
+		sess.And("issue.poster_id=?", opts.PosterID)
+	}
+
+	if opts.MilestoneID > 0 {
+		sess.And("issue.milestone_id=?", opts.MilestoneID)
+	}
+
+	switch opts.SortType {
+	case "oldest":
+		sess.Asc("issue.created_unix")
+	case "recentupdate":
+		sess.Desc("issue.updated_unix")
+	case "leastupdate":
+		sess.Asc("issue.updated_unix")
+	case "mostcomment":
+		sess.Desc("issue.num_comments")
+	case "leastcomment":
+		sess.Asc("issue.num_comments")
+	case "priority":
+		sess.Desc("issue.priority")
+	default:
+		sess.Desc("issue.created_unix")
+	}
+
+	if len(opts.Labels) > 0 && opts.Labels != "0" {
+		labelIDs := strings.Split(opts.Labels, ",")
+		if len(labelIDs) > 0 {
+			sess.Join("INNER", "issue_label", "issue.id = issue_label.issue_id").In("issue_label.label_id", labelIDs)
+		}
+	}
+
+	if opts.IsMention {
+		sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").And("issue_user.is_mentioned = ?", true)
+
+		if opts.UserID > 0 {
+			sess.And("issue_user.uid = ?", opts.UserID)
+		}
+	}
+	//*/
+
+	return sess
+}
+
+// IssuesCount returns the number of issues by given conditions.
+func PullsCount(opts *PullsOptions) (int64, error) {
+	sess := buildPullsQuery(opts)
+	if sess == nil {
+		return 0, nil
+	}
+	return sess.Count(&PullRequest{})
+}
+
+// Issues returns a list of issues by given conditions.
+func Pulls(opts *PullsOptions) ([]*PullRequest, error) {
+	sess := buildPullsQuery(opts)
+	if sess == nil {
+		return make([]*PullRequest, 0), nil
+	}
+
+	sess.Limit(conf.UI.IssuePagingNum, (opts.Page-1)*conf.UI.IssuePagingNum)
+
+	pulls := make([]*PullRequest, 0, conf.UI.IssuePagingNum)
+	if err := sess.Find(&pulls); err != nil {
+		return nil, fmt.Errorf("Find: %v", err)
+	}
+
+	// FIXME: use PullList to improve performance.
+	for i := range pulls {
+		if err := pulls[i].LoadAttributes(); err != nil {
+			return nil, fmt.Errorf("LoadAttributes [%d]: %v", pulls[i].ID, err)
+		}
+	}
+
+	return pulls, nil
 }
