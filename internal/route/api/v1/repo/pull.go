@@ -11,14 +11,26 @@ import (
 	"gogs.io/gogs/internal/db"
 )
 
-func GetPull(c *context.APIContext) {
-	issue, err := db.GetIssueByIndex(c.Repo.Repository.ID, c.ParamsInt64(":index"))
+type EditPullRequestOption struct {
+
+}
+
+type CreatePullRequestOption struct {
+
+}
+
+type MergePullRequestOption struct {
+
+}
+
+func GetPullRequest(c *context.APIContext) {
+	pr, err := db.GetPullRequestByIndex(c.Repo.Repository.ID, c.ParamsInt64(":index"))
 	if err != nil {
-		c.NotFoundOrError(err, "get pull by index")
+		c.NotFoundOrError(err, "get pull request by index")
 		return
 	}
 
-	c.JSONSuccess(issue.PullRequest.APIFormat())
+	c.JSONSuccess(pr.APIFormat())
 }
 
 func listPulls(c *context.APIContext, opts *db.PullsOptions) {
@@ -48,7 +60,7 @@ func listPulls(c *context.APIContext, opts *db.PullsOptions) {
 	c.JSONSuccess(&apiPulls)
 }
 
-func ListPulls(c *context.APIContext) {
+func ListPullRequests(c *context.APIContext) {
 	opts := db.PullsOptions{
 		BaseRepoID:   c.Repo.Repository.ID,
 		Page:     c.QueryInt("page"),
@@ -59,7 +71,7 @@ func ListPulls(c *context.APIContext) {
 	listPulls(c, &opts)
 }
 
-func MergePull(c *context.APIContext) {
+func MergePullRequest(c *context.APIContext, form MergePullRequestOption) {
 	issue, err := db.GetIssueByIndex(c.Repo.Repository.ID, c.ParamsInt64(":index"))
 	if err != nil {
 		c.NotFoundOrError(err, "get issue by index")
@@ -74,4 +86,17 @@ func MergePull(c *context.APIContext) {
 	issue, _ = db.GetIssueByIndex(c.Repo.Repository.ID, c.ParamsInt64(":index"))
 
 	c.JSONSuccess(issue.APIFormat())
+}
+
+func CreatePullRequest(c *context.Context, form CreatePullRequestOption){
+
+}
+
+func EditPullRequest(c *context.Context, form EditPullRequestOption){
+
+}
+
+
+func DeletePullRequest(c *context.Context, form EditPullRequestOption){
+
 }
