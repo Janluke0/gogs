@@ -357,9 +357,21 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/mirror-sync", reqRepoWriter(), repo.MirrorSync)
 				m.Get("/editorconfig/:filename", context.RepoRef(), repo.GetEditorconfig)
 
+				//TODO: move options in the api package
 				m.Group("/pulls", func() {
-					m.Get("", repo.ListPulls)
+					m.Get("", repo.ListPullRequests)
+					m.Get("/:index", repo.GetPullRequest)
 				})
+
+				m.Group("/pulls", func() {
+					m.Post("", bind(repo.CreatePullRequestOption{}), repo.CreatePullRequest)
+
+					m.Combo("/:index").
+						Patch(bind(repo.EditPullRequestOption{}), repo.EditPullRequest).
+						Delete(repo.DeletePullRequest)
+
+					m.Post("/:index/merge",bind(repo.MergePullRequestOption{}), repo.MergePullRequest)
+				}, reqRepoWriter())
 			}, repoAssignment())
 		}, reqToken())
 
