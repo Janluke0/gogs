@@ -356,6 +356,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Patch("/issue-tracker", reqRepoWriter(), bind(api.EditIssueTrackerOption{}), repo.IssueTracker)
 				m.Post("/mirror-sync", reqRepoWriter(), repo.MirrorSync)
 				m.Get("/editorconfig/:filename", context.RepoRef(), repo.GetEditorconfig)
+
+				m.Group("/pulls", func() {
+					m.Get("", repo.ListPulls)
+				})
 			}, repoAssignment())
 		}, reqToken())
 
