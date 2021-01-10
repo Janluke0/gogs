@@ -929,7 +929,7 @@ func InitTestPullRequests() {
 	go TestPullRequests()
 }
 
-type PullsOptions struct {
+type PullRequestsOptions struct {
 	UserID      int64
 	AssigneeID  int64
 	HeadRepoID  int64
@@ -944,7 +944,7 @@ type PullsOptions struct {
 }
 
 // buildIssuesQuery returns nil if it foresees there won't be any value returned.
-func buildPullsQuery(opts *PullsOptions) *xorm.Session {
+func buildPullsQuery(opts *PullRequestsOptions) *xorm.Session {
 	sess := x.NewSession()
 
 	if opts.Page <= 0 {
@@ -1007,7 +1007,7 @@ func buildPullsQuery(opts *PullsOptions) *xorm.Session {
 }
 
 // IssuesCount returns the number of issues by given conditions.
-func PullsCount(opts *PullsOptions) (int64, error) {
+func PullsCount(opts *PullRequestsOptions) (int64, error) {
 	sess := buildPullsQuery(opts)
 	if sess == nil {
 		return 0, nil
@@ -1016,7 +1016,7 @@ func PullsCount(opts *PullsOptions) (int64, error) {
 }
 
 // Issues returns a list of issues by given conditions.
-func Pulls(opts *PullsOptions) ([]*PullRequest, error) {
+func Pulls(opts *PullRequestsOptions) ([]*PullRequest, error) {
 	sess := buildPullsQuery(opts)
 	if sess == nil {
 		return make([]*PullRequest, 0), nil

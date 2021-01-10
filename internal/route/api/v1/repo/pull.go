@@ -33,7 +33,7 @@ func GetPullRequest(c *context.APIContext) {
 	c.JSONSuccess(pr.APIFormat())
 }
 
-func listPulls(c *context.APIContext, opts *db.PullsOptions) {
+func listPulls(c *context.APIContext, opts *db.PullRequestsOptions) {
 	pulls, err := db.Pulls(opts)
 	if err != nil {
 		c.Error(err, "list pulls")
@@ -61,7 +61,7 @@ func listPulls(c *context.APIContext, opts *db.PullsOptions) {
 }
 
 func ListPullRequests(c *context.APIContext) {
-	opts := db.PullsOptions{
+	opts := db.PullRequestsOptions{
 		BaseRepoID:   c.Repo.Repository.ID,
 		Page:     c.QueryInt("page"),
 		HasMerged: false,
